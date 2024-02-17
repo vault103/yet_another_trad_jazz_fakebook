@@ -1,0 +1,55 @@
+#!/bin/sh -ex
+
+TEMPLATE="template.inc"
+
+song="$1"
+key="$2"
+key=$(echo $key | tr [:upper:] [:lower:])
+shift 2
+pdfs="$@"
+
+song_name=$(echo $song | tr _ ' ' | sed 's/\([a-z]\)\([a-zA-Z0-9]*\)/\u\1\2/g')
+key_name=$(echo $key | tr _ ' ' | sed 's/\([a-z]\)\([a-zA-Z0-9]*\)/\u\1\2/g')
+
+if [ -z "$song" -o -z "$key" ]; then
+    echo "USAGE: $0 <song> <key> [<page[s]>]" 1>&2
+    exit 1
+fi
+
+if [ -e "$song" ]; then
+    echo "Directory '$song' already exists, refusing to overwrite" 1>&2
+    exit 1
+fi
+
+mkdir "$song"
+
+sed -e "s/__TITLE__/$song/g; s/__KEY__/$key/g; s/__TITLE_NAME__/$song_name/g; s/__KEY_NAME__/$key_name/g;" "$TEMPLATE" > "$song/$song.inc"
+(
+    echo '\include' \""$song.inc"\"
+    echo "title = \"$song_name - $key_name\""
+    echo '\include "standard_parts.ly"'
+) > "$song/${song}-$key.ly"
+
+svn add "$song"
+svn propset svn:ignore '*.pdf
+*.size
+*.blank
+' "$song"
+
+page=1
+for pdf in $pdfs; do
+    mv "../Creole Jazz Band Fank Book 1/burst/Bb Out of Copyright_$pdf.pdf"                 "$song/${song}-Bb-p$page.pdf"
+    mv "../Creole Jazz Band Fank Book 1/burst/Eb Out of Copyright_$pdf.pdf"                 "$song/${song}-Eb-p$page.pdf"
+    mv "../Creole Jazz Band Fank Book 1/burst/Bass out of copyright_$pdf.pdf"               "$song/${song}-Bass-p$page.pdf"
+    mv "../Creole Jazz Band Fank Book 1/burst/Tuba out of copyright_$pdf.pdf"               "$song/${song}-Tuba-p$page.pdf"
+    mv "../Creole Jazz Band Fank Book 1/burst/C Treble out of copyright publish_$pdf.pdf"   "$song/${song}-Concert-p$page.pdf"
+    page=$(($page + 1))
+done
+
+shopt -s nullglob
+
+for file in $song/*.pdf; do
+    pdftops -eps "$file" && rm "$file"
+done
+
+echo $pdfs > latest_pdf.txt

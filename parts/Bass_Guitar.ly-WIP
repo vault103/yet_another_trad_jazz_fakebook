@@ -1,0 +1,148 @@
+\version "2.16.0"
+\language "english"
+
+\book {
+    \bookOutputSuffix "Bass_Guitar"
+    \paper {
+%        annotate-spacing = ##t
+        print-page-number = ##f
+        indent = 0\cm
+        #(define bottom-margin (* 0 cm))
+%        #(define top-margin (* 0 cm))
+
+        #(define fonts
+            (make-pango-font-tree
+                roman_font
+                sans_font
+                typewriter_font
+                (/ staff-height pt 20)
+            )
+        )                              
+    }
+
+    #(define my_title "")
+    #(define my_subtitle "")
+
+    #(if (not pdf_bass_guitarI) (set! my_title title))
+    #(if (not pdf_bass_guitarI) (set! my_subtitle subtitle))
+
+    \header {
+        title       = \my_title
+        subtitle    = \my_subtitle
+        subsubtile  = \subsubtitle
+        source      = ""
+        tagline     = ##f
+        piece       = "Bass Guitar"
+        composer    = \source_url
+        arranger    = \listen_url
+    }
+
+    \include "predefined-bass-swing-fretboards.ly"
+
+    \score {
+        <<
+        \new ChordNames  {
+            \chord_format
+            \chord_names
+        }
+        \new FretBoards {
+            \override FretBoards.FretBoard.size                             = #chords_used_guitar_size
+            \override FretBoard.fret-diagram-details.number-type            = #'arabic
+            \override FretBoard.fret-diagram-details.finger-code            = #'none
+            \override FretBoard.fret-diagram-details.fret-count             = #5
+            % \override FretBoard.fret-diagram-details.finger-code            = #'in-dot
+            \override FretBoard.fret-diagram-details.mute-string            = #"x"
+            \override FretBoard.fret-diagram-details.open-string            = #"o"
+            \override FretBoard.fret-diagram-details.xo-font-magnification  = #1
+            \override FretBoard.fret-diagram-details.fret-label-font-mag    = #1
+            \set stringTunings = #bass-tuning
+            \bass_chords
+        }
+        >>
+        \layout {
+            \context { \ChordNames
+                \override ChordName.font-family = #'sans
+                \override ChordName.font-size   = #4
+            }
+        }
+    }
+
+
+    \score {
+        $(if(not pdf_bass_guitarI) #{
+            <<
+                \new ChordNames  {
+                    \set majorSevenSymbol = \markup { (maj7) }
+                    \set chordNameExceptions = #chExceptions
+                    \changes
+                }
+
+                \new FretBoards {
+                    % \override FretBoards.FretBoard.size                           = #'0.8
+                    \override FretBoard.fret-diagram-details.number-type            = #'arabic
+                    \override FretBoard.fret-diagram-details.finger-code            = #'none
+                    \override FretBoard.fret-diagram-details.fret-count             = #5
+                    \override FretBoard.fret-diagram-details.mute-string            = #"x"
+                    \override FretBoard.fret-diagram-details.open-string            = #"o"
+                    \override FretBoard.fret-diagram-details.xo-font-magnification  = #1
+                    \override FretBoard.fret-diagram-details.fret-label-font-mag    = #1
+                    \set stringTunings = #bass-tuning
+                    % \set chordChanges = ##t
+                    \bass_changes
+                }
+
+                \new Staff { \clef bass \transpose c c, { \melody } }
+                \addlyrics { \verseI }
+                \addlyrics { \verseII }
+                \addlyrics { \verseIII }
+                \addlyrics { \verseIV }
+                \addlyrics { \verseV }
+            >>
+        #}
+        #{ << >> #})
+        \header {
+            piece = " "
+        }
+        \layout {
+            \context { \ChordNames
+                \override ChordName.font-family = #'sans
+                \override ChordName.font-size   = #4
+            }
+        }
+    }
+
+    $(if pdf_bass_guitarI pdf_bass_guitarI)
+
+    $(if pdf_bass_guitarII pageBreak)
+
+    \score {
+        <<
+        \new ChordNames  {
+            \set majorSevenSymbol = \markup { (maj7) }
+            \set chordNameExceptions = #chExceptions
+            \chord_names_b
+        }
+        \new FretBoards {
+            \override FretBoards.FretBoard.size                             = #chords_used_guitar_size
+            \override FretBoard.fret-diagram-details.number-type            = #'arabic
+            \override FretBoard.fret-diagram-details.finger-code            = #'none
+            \override FretBoard.fret-diagram-details.fret-count             = #5
+            \override FretBoard.fret-diagram-details.mute-string            = #"x"
+            \override FretBoard.fret-diagram-details.open-string            = #"o"
+            \override FretBoard.fret-diagram-details.xo-font-magnification  = #1
+            \override FretBoard.fret-diagram-details.fret-label-font-mag    = #1
+            \set stringTunings = #bass-tuning
+            \guitar_chords_b
+        }
+        >>
+    }
+    $(if pdf_bass_guitarII pdf_bass_guitarII)
+
+    $(if pdf_bass_guitarIII pageBreak)
+    $(if pdf_bass_guitarIII pdf_bass_guitarIII)
+
+    $(if pdf_bass_guitarIIII pageBreak)
+    $(if pdf_bass_guitarIIII pdf_bass_guitarIIII)
+
+    \verseAlt
+}

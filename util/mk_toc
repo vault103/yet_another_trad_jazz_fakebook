@@ -1,0 +1,388 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use POSIX;
+
+use Carp;
+use PDF::API2;
+
+use constant mm => 25.4 / 72;
+use constant in => 1 / 72;
+use constant pt => 1;
+
+my $USAGE = "USAGE: $0 <instrument> <songs>";
+
+my $instrument = shift @ARGV
+    or die $USAGE;
+
+my @songs = @ARGV
+    or die "No songs: $USAGE";
+
+@songs = sort { 
+    my $A = $a;
+    my $B = $b;
+    for ($A, $B) {
+        s/^the_//i;
+        s/\(//i;
+        s/'//i;
+    }
+    return lc($A) cmp lc($B);
+} @songs;
+@songs = grep { !/_chart/ } @songs;
+
+my $instrument_name = $instrument;
+$instrument_name =~ s/_/ /g;
+
+open my $REV_FILE, '.revision_number.txt'
+    or die "open(.revision_number.txt): $!";
+
+my $revision = <$REV_FILE>;
+close $REV_FILE;
+
+my $pdf = PDF::API2->new( -file => "$instrument-toc.pdf" );
+my %font = (
+    Helvetica => {
+        Bold   => $pdf->corefont( 'Helvetica-Bold',    -encoding => 'latin1' ),
+        Roman  => $pdf->corefont( 'Helvetica',         -encoding => 'latin1' ),
+        Italic => $pdf->corefont( 'Helvetica-Oblique', -encoding => 'latin1' ),
+    },
+    Times => {
+        Bold   => $pdf->corefont( 'Times-Bold',   -encoding => 'latin1' ),
+        Roman  => $pdf->corefont( 'Times',        -encoding => 'latin1' ),
+        Italic => $pdf->corefont( 'Times-Italic', -encoding => 'latin1' ),
+    },
+);
+
+my %songs;
+my $index_left  = '';
+my $index_right = '';
+
+my @indexes;
+my $max_index_lines = 44;
+my $current_index_line = 1;
+my $current_index = 0;
+
+my $page_count = ceil( scalar(@songs) / $max_index_lines );
+
+open my $TOC_PAGE_COUNT, ">$instrument-toc.pdf.size"
+    or confess "open(>$instrument-toc.pdf.size): $!";
+print $TOC_PAGE_COUNT $page_count;
+close $TOC_PAGE_COUNT
+    or confess "close(>$instrument-toc.pdf.size): $!";
+
+for my $song_file (@songs) {
+    chomp $song_file;
+
+    -e $song_file
+        or die "No song file found at '$song_file'";
+    
+    my $song = $song_file;
+    $song =~ s/.ly$//
+        or die "Song '$song_file' does not appear to be a song (no .ly extension?)";
+
+    my $song_pdf = "$song-$instrument.pdf";
+    my $song_pdf_pages = "$song-$instrument.pdf.size";
+    my $song_png = "$song-$instrument.png";
+#    -e $song_pdf
+#        or die "No song pdf found at '$song_pdf'";
+
+    my $title   = '';
+    my $key     = '';
+    my $html_title = '';
+    open my $SONG, $song_file
+        or die "open($song_file): $!";
+    while (<$SONG>) {
+        chomp;
+        next unless /\s*title\s*=\s*/;
+        $title = $_;
+        $title =~ s/\s*title\s*=\s*"(.*?)"/$1/;
+        $key = $title;
+        $key =~ s/.*\s+-\s+([^-]+)$/$1/
+            or $key = '';
+        last;
+    }
+    close $SONG;
+    
+    open my $SONG_PAGES, $song_pdf_pages
+        or confess "open($song_pdf_pages): $!";
+    my $song_pages = <$SONG_PAGES>;
+    chomp $song_pages;
+    close $SONG_PAGES
+        or confess "close($song_pdf_pages): $!";
+
+    if (-e "$song_pdf_pages.blank") {
+        $song_pages++;
+    }
+
+    # $html_title = encode_entities($title);
+    # $html_title = $title;
+    # $html_title =~ s/ö/&ouml;/g;
+
+    $songs{$song_file}{title} = $title;
+
+    $indexes[$current_index]{left}   .= "$title\n";
+    $indexes[$current_index]{right}  .= "$page_count\n";
+
+    $page_count += $song_pages;
+
+    $current_index_line++;
+
+    if ($current_index_line >= $max_index_lines) {
+        $current_index++;
+        $current_index_line = 1;
+    }
+
+    print "$current_index: $title: $song_pages - $song_file\n";
+}
+
+my $page;
+my $align;
+my $x;
+
+for (my $index = 0; $index <= $#indexes; $index++) {
+    if ($index % 2) {
+        $align = 'right';
+        $x = 110;
+    }
+    else {
+        $align = 'left';
+        $x = 10;
+        $page = new_page($pdf);
+    }
+
+    my $column_text = $page->text;
+    $column_text->font( $font{'Times'}{'Roman'}, 12 / pt );
+    $column_text->fillcolor('black');
+    text_block(
+        $column_text,
+        $indexes[$index]{left},
+        -x        => $x / mm,
+        -y        => 265 / mm,
+        -w        => 90 / mm,
+        -h        => 260 / mm - 7 / pt,
+        -lead     => 7 / pt,
+        -parspace => 10 / pt,
+        -align    => 'left',
+    );
+    
+    my $page_column_text = $page->text;
+    $page_column_text->font( $font{'Times'}{'Roman'}, 12 / pt );
+    $page_column_text->fillcolor('black');
+    text_block(
+        $page_column_text,
+        $indexes[$index]{right},
+        -x        => $x / mm,
+        -y        => 265 / mm,
+        -w        => 90 / mm,
+        -h        => 260 / mm - 7 / pt,
+        -lead     => 7 / pt,
+        -parspace => 10 / pt,
+        -align    => 'right',
+    );
+}
+
+print "Saving to '$instrument-toc.pdf'\n";
+$pdf->save;
+$pdf->end();
+
+sub text_block {
+    my $text_object = shift;
+    my $text        = shift;
+
+    my %arg = @_;
+
+    # Get the text in paragraphs
+    my @paragraphs = split( /\n/, $text );
+
+    # calculate width of all words
+    my $space_width = $text_object->advancewidth(' ');
+
+    my @words = split( /\s+/, $text );
+    my %width = ();
+    foreach (@words) {
+        next if exists $width{$_};
+        $width{$_} = $text_object->advancewidth($_);
+    }
+
+    my $ypos = $arg{'-y'};
+    my $endw;
+    my @paragraph = split( / /, shift(@paragraphs) );
+
+    my $first_line      = 1;
+    my $first_paragraph = 1;
+
+    # while we can add another line
+
+    while ( $ypos >= $arg{'-y'} - $arg{'-h'} + $arg{'-lead'} ) {
+
+        unless (@paragraph) {
+            last unless scalar @paragraphs;
+
+            @paragraph = split( / /, shift(@paragraphs) );
+
+            $ypos -= $arg{'-parspace'} if $arg{'-parspace'};
+            last unless $ypos >= $arg{'-y'} - $arg{'-h'};
+
+            $first_line      = 1;
+            $first_paragraph = 0;
+        }
+
+        my $xpos = $arg{'-x'};
+
+        # while there's room on the line, add another word
+        my @line = ();
+
+        my $line_width = 0;
+        if ( $first_line && exists $arg{'-hang'} ) {
+
+            my $hang_width = $text_object->advancewidth( $arg{'-hang'} );
+
+            $text_object->translate( $xpos, $ypos );
+            $text_object->text( $arg{'-hang'} );
+
+            $xpos       += $hang_width;
+            $line_width += $hang_width;
+            $arg{'-indent'} += $hang_width if $first_paragraph;
+
+        }
+        elsif ( $first_line && exists $arg{'-flindent'} ) {
+
+            $xpos       += $arg{'-flindent'};
+            $line_width += $arg{'-flindent'};
+
+        }
+        elsif ( $first_paragraph && exists $arg{'-fpindent'} ) {
+
+            $xpos       += $arg{'-fpindent'};
+            $line_width += $arg{'-fpindent'};
+
+        }
+        elsif ( exists $arg{'-indent'} ) {
+
+            $xpos       += $arg{'-indent'};
+            $line_width += $arg{'-indent'};
+
+        }
+
+        while ( @paragraph
+            and $line_width + ( scalar(@line) * $space_width ) +
+            $width{ $paragraph[0] } < $arg{'-w'} )
+        {
+
+            $line_width += $width{ $paragraph[0] };
+            push( @line, shift(@paragraph) );
+
+        }
+
+        # calculate the space width
+        my ( $wordspace, $align );
+        if ( $arg{'-align'} eq 'fulljustify'
+            or ( $arg{'-align'} eq 'justify' and @paragraph ) )
+        {
+
+            if ( scalar(@line) == 1 ) {
+                @line = split( //, $line[0] );
+
+            }
+            $wordspace = ( $arg{'-w'} - $line_width ) / ( scalar(@line) - 1 );
+
+            $align = 'justify';
+        }
+        else {
+            $align = ( $arg{'-align'} eq 'justify' ) ? 'left' : $arg{'-align'};
+
+            $wordspace = $space_width;
+        }
+        $line_width += $wordspace * ( scalar(@line) - 1 );
+
+        if ( $align eq 'justify' ) {
+            foreach my $word (@line) {
+
+                $text_object->translate( $xpos, $ypos );
+                $text_object->text($word);
+
+                $xpos += ( $width{$word} + $wordspace ) if (@line);
+
+            }
+            $endw = $arg{'-w'};
+        }
+        else {
+
+            # calculate the left hand position of the line
+            if ( $align eq 'right' ) {
+                $xpos += $arg{'-w'} - $line_width;
+
+            }
+            elsif ( $align eq 'center' ) {
+                $xpos += ( $arg{'-w'} / 2 ) - ( $line_width / 2 );
+
+            }
+
+            # render the line
+            $text_object->translate( $xpos, $ypos );
+
+            $endw = $text_object->text( join( ' ', @line ) );
+
+        }
+        $ypos -= $arg{'-lead'};
+        $first_line = 0;
+
+    }
+    unshift( @paragraphs, join( ' ', @paragraph ) ) if scalar(@paragraph);
+
+    return ( $endw, $ypos, join( "\n", @paragraphs ) )
+}
+
+
+sub new_page {
+    my $pdf = shift;
+    my $page = $pdf->page;
+#    $page->mediabox( 105 / mm, 148 / mm );
+    $page->mediabox('a4');
+    #$page->bleedbox(  5/mm,   5/mm,  100/mm,  143/mm);
+#    $page->cropbox( 7.5 / mm, 7.5 / mm, 97.5 / mm, 140.5 / mm );
+    $page->cropbox('a4');
+    #$page->artbox  ( 10/mm,  10/mm,   95/mm,  138/mm);
+    
+    my $blue_box = $page->gfx;
+    $blue_box->fillcolor('darkblue');
+    $blue_box->rect( 1 / mm, 278 / mm, 208 / mm, 18 / mm );
+    $blue_box->fill;
+    
+    my $red_line = $page->gfx;
+    $red_line->strokecolor('red');
+    $red_line->move( 1 / mm, 278 / mm );
+    $red_line->line( 209 / mm, 278 / mm );
+    $red_line->stroke;
+    
+    my $headline_text = $page->text;
+    $headline_text->font( $font{'Helvetica'}{'Bold'}, 20 / pt );
+    $headline_text->fillcolor('white');
+    $headline_text->translate( 162 / mm, 289 / mm );
+    $headline_text->text("Jacuzzi Jam!");
+    
+    my $revision_text = $page->text;
+    $revision_text->font( $font{'Helvetica'}{'Bold'}, 8 / pt );
+    $revision_text->fillcolor('white');
+    $revision_text->translate( 162 / mm, 286 / mm );
+    $revision_text->text("$revision");
+    
+    my $instrument_text = $page->text;
+    $instrument_text->font( $font{'Helvetica'}{'Bold'}, 34 / pt );
+    $instrument_text->fillcolor('white');
+    $instrument_text->translate( 30 / mm, 280 / mm );
+    $instrument_text->text($instrument_name);
+    
+    # $instrument_name
+    
+    my $background = $page->gfx;
+    $background->strokecolor('lightgrey');
+    $background->circle( 40 / mm, 110 / mm, 110 / mm );
+    $background->circle( 50 / mm, 114 / mm, 105 / mm );
+    $background->circle( 42 / mm, 100 / mm, 120 / mm );
+    $background->stroke;
+    
+    return $page;
+}

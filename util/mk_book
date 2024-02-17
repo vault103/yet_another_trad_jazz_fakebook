@@ -1,0 +1,687 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use POSIX;
+
+use Carp;
+use File::Basename;
+
+use PDF::API2;
+
+use constant mm => 25.4 / 72;
+use constant in => 1 / 72;
+use constant pt => 1;
+
+use Getopt::Long;
+
+my $USAGE = "USAGE: $0 --output <file> --instrument <instrument> <songs>";
+
+my $output_file = '';
+my $instrument  = '';
+my $paper_size	= 'a4';
+
+GetOptions(
+    'output=s'                  => \$output_file,
+    'instrument=s'              => \$instrument,
+    'paper-size|paper_size=s'   => \$paper_size,
+) or die "Invalid options";
+
+my @songs = @ARGV
+    or die "No songs: $USAGE";
+
+my %keys;
+my %chords;
+
+@songs = sort { 
+    open my $a_file, $a
+        or die "open($a): $!";
+    open my $b_file, $b
+        or die "open($b): $!";
+
+    my ($A, $B);
+
+    while (<$a_file>) {
+        chomp;
+        next unless /\s*title\s*=\s*/;
+        $A = $_;
+        last;
+    }
+    $A =~ s/\s*title\s*=.*?"(.*?)"(\s*\\flat_mark.*)*/"$1" . ($2 ? "b" : "")/e;
+    $A = lc($A);
+    close $a_file
+        or die "close($a): $!";
+
+    while (<$b_file>) {
+        chomp;
+        next unless /\s*title\s*=\s*/;
+        $B = $_;
+        last;
+    }
+    $B =~ s/\s*title\s*=.*?"(.*?)"(\s*\\flat_mark.*)*/"$1" . ($2 ? "b" : "")/e;
+    $B = lc($B);
+    close $b_file
+        or die "close($b): $!";
+
+    for ($A, $B) {
+        s/^the[ _]*//i;
+        s/\(//i;
+        s/'//i;
+    }
+    return lc($A) cmp lc($B);
+} @songs;
+@songs = grep { !/_chart/ } @songs;
+chomp @songs;
+
+my $instrument_name = $instrument;
+$instrument_name =~ s/_/ /g;
+
+open my $REV_FILE, '.revision_number.txt'
+    or die "open(.revision_number.txt): $!";
+
+my $revision = <$REV_FILE>;
+close $REV_FILE;
+
+my $pdf = PDF::API2->new( -file => "$output_file" );
+my $root = $pdf->outlines;
+
+my %font = (
+    Helvetica => {
+        Bold   => $pdf->corefont( 'Helvetica-Bold',    -encoding => 'latin1' ),
+        Roman  => $pdf->corefont( 'Helvetica',         -encoding => 'latin1' ),
+        Italic => $pdf->corefont( 'Helvetica-Oblique', -encoding => 'latin1' ),
+    },
+    Times => {
+        Bold   => $pdf->corefont( 'Times-Bold',   -encoding => 'latin1' ),
+        Roman  => $pdf->corefont( 'Times',        -encoding => 'latin1' ),
+        Italic => $pdf->corefont( 'Times-Italic', -encoding => 'latin1' ),
+    },
+);
+
+my %songs;
+my $index_left  = '';
+my $index_right = '';
+
+my @indexes;
+my $max_index_lines = 43;
+my $current_index_line = 2;
+my $current_index = 0;
+
+my $page_count = ceil( scalar(@songs) / $max_index_lines );
+
+if ($page_count % 2) {
+    $page_count++;
+}
+
+$page_count++;
+
+$indexes[0]{left}   = "Song Index\n";
+$indexes[0]{right}  = "1\n";
+
+for my $song_file (@songs) {
+    -e $song_file
+        or die "No song file found at '$song_file'";
+    
+    my $song = $song_file;
+    $song =~ s/.ly$//
+        or die "Song '$song_file' does not appear to be a song (no .ly extension?)";
+
+    my $song_pdf = "$song-$instrument.pdf";
+    my $song_pdf_pages = "$song-$instrument.pdf.size";
+    my $song_png = "$song-$instrument.png";
+#    -e $song_pdf
+#        or die "No song pdf found at '$song_pdf'";
+
+    my $title   = '';
+    my $key     = '';
+    my $html_title = '';
+    open my $SONG, $song_file
+        or die "open($song_file): $!";
+    while (<$SONG>) {
+        chomp;
+        next unless /\s*title\s*=\s*/;
+        $title = $_;
+        last;
+    }
+
+    $title =~ s/\s*title\s*=.*?"(.*?)"(\s*\\flat_mark.*)*.*/"$1" . ($2 ? "b" : "")/e;
+    $key = $title;
+    $key =~ s/.*\s+-\s+(.+)$/$1/
+        or $key = '';
+    close $SONG;
+    
+    open my $SONG_PAGES, $song_pdf_pages
+        or confess "open($song_pdf_pages): $!";
+    my $song_pages = <$SONG_PAGES>;
+    chomp $song_pages;
+    close $SONG_PAGES
+        or confess "close($song_pdf_pages): $!";
+
+    if (-e "$song_pdf_pages.blank") {
+        open my $ADD_BLANK, "$song_pdf_pages.blank"
+            or die "open($song_pdf_pages.blank): $!";
+        my $add_blank = <$ADD_BLANK>;
+        close $ADD_BLANK
+            or die "close($song_pdf_pages.blank): $!";
+
+        $song_pages += $add_blank;
+    }
+
+    # $html_title = encode_entities($title);
+    # $html_title = $title;
+    # $html_title =~ s/ö/&ouml;/g;
+
+    $songs{$song_file}{title} = $title;
+
+    $indexes[$current_index]{left}   .= "$title\n";
+    $indexes[$current_index]{right}  .= "$page_count\n";
+
+    $page_count += $song_pages;
+
+    $current_index_line++;
+
+    if ($current_index_line >= $max_index_lines) {
+        $current_index++;
+        $current_index_line = 1;
+    }
+
+    print "$current_index: $title: $song_pages - $song_file\n";
+}
+
+my $first_page;
+my $page;
+my $align;
+my $x;
+
+for (my $index = 0; $index <= $#indexes; $index++) {
+    if ($index % 2) {
+        $align = 'right';
+        $x = 110;
+    }
+    else {
+        $align = 'left';
+        $x = 10;
+        $page = new_page($pdf);
+        $first_page ||= $page;
+    }
+
+    my $column_text = $page->text;
+    $column_text->font( $font{'Times'}{'Roman'}, 12 / pt );
+    $column_text->fillcolor('black');
+    text_block(
+        $column_text,
+        $indexes[$index]{left},
+        -x        => $x / mm,
+        -y        => 252 / mm,
+        -w        => 90 / mm,
+        -h        => 260 / mm - 7 / pt,
+        -lead     => 7 / pt,
+        -parspace => 10 / pt,
+        -align    => 'left',
+    );
+    
+    my $page_column_text = $page->text;
+    $page_column_text->font( $font{'Times'}{'Roman'}, 12 / pt );
+    $page_column_text->fillcolor('black');
+    text_block(
+        $page_column_text,
+        $indexes[$index]{right},
+        -x        => $x / mm,
+        -y        => 252 / mm,
+        -w        => 90 / mm,
+        -h        => 260 / mm - 7 / pt,
+        -lead     => 7 / pt,
+        -parspace => 10 / pt,
+        -align    => 'right',
+    );
+}
+
+my $blank_input = PDF::API2->open('blank.pdf');
+
+$page_count = ceil( scalar(@songs) / $max_index_lines );
+
+my $outline = $root->outline;
+$outline->title("Song Index");
+$outline->dest($first_page);
+
+my $alphabetical = $root->outline;
+$alphabetical->title("Alphabetical");
+
+my $current_letter = '';
+my $current_outline;
+my $current_letter_count = 0;
+
+my $by_key = $root->outline;
+$by_key->title("By Key");
+
+my $by_chords = $root->outline;
+$by_chords->title("By # of chords");
+
+my %by_chords;
+
+for my $song_file (@songs) {
+    -e $song_file
+        or die "No song file found at '$song_file'";
+
+    my $song = $song_file;
+    $song =~ s/.ly$//
+        or die "Song '$song_file' does not appear to be a song (no .ly extension?)";
+    
+    my $song_pdf = "$song-$instrument.pdf";
+    my $song_pdf_pages = "$song-$instrument.pdf.size";
+    my $song_png = "$song-$instrument.png";
+    #    -e $song_pdf
+    #        or die "No song pdf found at '$song_pdf'";
+    
+    my $title   = '';
+    my $key     = '';
+    my $letter  = '';
+    my $html_title = '';
+    open my $SONG, $song_file
+        or die "open($song_file): $!";
+    while (<$SONG>) {
+        chomp;
+        next unless /\s*title\s*=\s*/;
+        $title = $_;
+        last;
+    }
+    close $SONG;
+
+    $title =~ s/\s*title\s*=.*?"(.*?)"(\s*\\flat_mark.*)*.*/"$1" . ($2 ? "b" : "")/e;
+    $key = $letter = $title;
+#    $key =~ s/.*\s+-\s+([^-]+)$/$1/
+    $key =~ s/.*\s+-\s+(.+)$/$1/
+        or $key = '?';
+    $letter =~ s/^the\s+//i;
+    $letter =~ s/\(//i;
+    $letter =~ s/'//i;
+    $letter = uc(substr($letter, 0, 1));
+    if ($letter =~ /\d/) {
+        $letter = '#';
+    }
+
+    my @chords;
+    
+    eval {
+        @chords = get_chords($song_file);
+    };
+    my $num_chords = scalar @chords;
+
+    if ($letter ne $current_letter) {
+        if ($current_outline) {
+            $current_outline->title("$current_letter ($current_letter_count)");
+        }
+
+        $current_outline        = $alphabetical->outline;
+        $current_letter_count   = 0;
+    }
+
+    $current_letter_count++;
+
+    my $song_input = PDF::API2->open($song_pdf);
+    my @song_pages = 1 .. $song_input->pages;
+    my $outline = $current_outline->outline;
+    $outline->title($title);
+
+    if (-e "$song_pdf_pages.blank") {
+        $page_count++;
+        my $page = $pdf->importpage($blank_input, 1, $page_count);
+        print "ADDING:    blank.pdf\n"
+    }
+
+    print "ADDING: $song_file\n";
+
+    foreach my $page_num (@song_pages) {
+        $page_count++;
+        my $page = $pdf->importpage($song_input, $page_num, $page_count);
+        if ($page_num == 1) {
+            $outline->dest($page);
+            push @{ $keys{$key} }, {
+                title   => $title,
+                page    => $page,
+            };
+            push @{ $by_chords{$num_chords} }, {
+                title   => $title,
+                page    => $page
+            };
+
+            if ($letter ne $current_letter) {
+                $current_outline->dest($page);
+                $current_letter = $letter;
+            }
+
+            if ($song_file eq $songs[0]) {
+                $alphabetical->dest($page);
+            }
+            
+            
+        }
+    }
+}
+
+# Save for last letter
+$current_outline->title("$current_letter ($current_letter_count)");
+
+for my $key (sort {
+    my $a_dash = $a;
+    my $b_dash = $b;
+    for ($a_dash, $b_dash) { s#[^-/]##g }
+    ($a_dash cmp $b_dash) || ($a cmp $b);
+} keys %keys) {
+    my $key_outline = $by_key->outline;
+    $key_outline->title("$key (" . scalar @{ $keys{$key} } . ")");
+    for (my $i = 0; $i < @{ $keys{$key} }; $i++) {
+        if ($i == 0) {
+            $key_outline->dest($keys{$key}[$i]{page});
+        }
+
+        my $song_outline = $key_outline->outline;
+        
+        $song_outline->title($keys{$key}[$i]{title});
+        $song_outline->dest($keys{$key}[$i]{page});
+        
+    }
+}
+
+for my $chord_count (sort { $a <=> $b } keys %by_chords) {
+    my $chord_outline = $by_chords->outline;
+    if ($chord_count == 1) {
+        $chord_outline->title("1 chord");
+    }
+    else {
+        $chord_outline->title("$chord_count chords");
+    }
+
+    for (my $i = 0; $i < @{ $by_chords{$chord_count} }; $i++) {
+        if ($i == 0) {
+            $chord_outline->dest($by_chords{$chord_count}[$i]{page});
+        }
+
+        my $song_outline = $chord_outline->outline;
+        
+        $song_outline->title($by_chords{$chord_count}[$i]{title});
+        $song_outline->dest($by_chords{$chord_count}[$i]{page});
+    }
+}
+
+print "Saving to '$output_file'\n";
+$pdf->preferences( -outlines => 1 );
+# $pdf->update;
+$pdf->save;
+$pdf->end();
+
+sub text_block {
+    my $text_object = shift;
+    my $text        = shift;
+
+    my %arg = @_;
+
+    # Get the text in paragraphs
+    my @paragraphs = split( /\n/, $text );
+
+    # calculate width of all words
+    my $space_width = $text_object->advancewidth(' ');
+
+    my @words = split( /\s+/, $text );
+    my %width = ();
+    foreach (@words) {
+        next if exists $width{$_};
+        $width{$_} = $text_object->advancewidth($_);
+    }
+
+    my $ypos = $arg{'-y'};
+    my $endw;
+    my @paragraph = split( / /, shift(@paragraphs) );
+
+    my $first_line      = 1;
+    my $first_paragraph = 1;
+
+    # while we can add another line
+
+    while ( $ypos >= $arg{'-y'} - $arg{'-h'} + $arg{'-lead'} ) {
+
+        unless (@paragraph) {
+            last unless scalar @paragraphs;
+
+            @paragraph = split( / /, shift(@paragraphs) );
+
+            $ypos -= $arg{'-parspace'} if $arg{'-parspace'};
+            last unless $ypos >= $arg{'-y'} - $arg{'-h'};
+
+            $first_line      = 1;
+            $first_paragraph = 0;
+        }
+
+        my $xpos = $arg{'-x'};
+
+        # while there's room on the line, add another word
+        my @line = ();
+
+        my $line_width = 0;
+        if ( $first_line && exists $arg{'-hang'} ) {
+
+            my $hang_width = $text_object->advancewidth( $arg{'-hang'} );
+
+            $text_object->translate( $xpos, $ypos );
+            $text_object->text( $arg{'-hang'} );
+
+            $xpos       += $hang_width;
+            $line_width += $hang_width;
+            $arg{'-indent'} += $hang_width if $first_paragraph;
+
+        }
+        elsif ( $first_line && exists $arg{'-flindent'} ) {
+
+            $xpos       += $arg{'-flindent'};
+            $line_width += $arg{'-flindent'};
+
+        }
+        elsif ( $first_paragraph && exists $arg{'-fpindent'} ) {
+
+            $xpos       += $arg{'-fpindent'};
+            $line_width += $arg{'-fpindent'};
+
+        }
+        elsif ( exists $arg{'-indent'} ) {
+
+            $xpos       += $arg{'-indent'};
+            $line_width += $arg{'-indent'};
+
+        }
+
+        while ( @paragraph
+            and $line_width + ( scalar(@line) * $space_width ) +
+            $width{ $paragraph[0] } < $arg{'-w'} )
+        {
+
+            $line_width += $width{ $paragraph[0] };
+            push( @line, shift(@paragraph) );
+
+        }
+
+        # calculate the space width
+        my ( $wordspace, $align );
+        if ( $arg{'-align'} eq 'fulljustify'
+            or ( $arg{'-align'} eq 'justify' and @paragraph ) )
+        {
+
+            if ( scalar(@line) == 1 ) {
+                @line = split( //, $line[0] );
+
+            }
+            $wordspace = ( $arg{'-w'} - $line_width ) / ( scalar(@line) - 1 );
+
+            $align = 'justify';
+        }
+        else {
+            $align = ( $arg{'-align'} eq 'justify' ) ? 'left' : $arg{'-align'};
+
+            $wordspace = $space_width;
+        }
+        $line_width += $wordspace * ( scalar(@line) - 1 );
+
+        if ( $align eq 'justify' ) {
+            foreach my $word (@line) {
+
+                $text_object->translate( $xpos, $ypos );
+                $text_object->text($word);
+
+                $xpos += ( $width{$word} + $wordspace ) if (@line);
+
+            }
+            $endw = $arg{'-w'};
+        }
+        else {
+
+            # calculate the left hand position of the line
+            if ( $align eq 'right' ) {
+                $xpos += $arg{'-w'} - $line_width;
+
+            }
+            elsif ( $align eq 'center' ) {
+                $xpos += ( $arg{'-w'} / 2 ) - ( $line_width / 2 );
+
+            }
+
+            # render the line
+            $text_object->translate( $xpos, $ypos );
+
+            $endw = $text_object->text( join( ' ', @line ) );
+
+        }
+        $ypos -= $arg{'-lead'};
+        $first_line = 0;
+
+    }
+    unshift( @paragraphs, join( ' ', @paragraph ) ) if scalar(@paragraph);
+
+    return ( $endw, $ypos, join( "\n", @paragraphs ) )
+}
+
+
+sub new_page {
+    my $pdf = shift;
+    my $page = $pdf->page;
+#    $page->mediabox( 105 / mm, 148 / mm );
+    $page->mediabox($paper_size);
+    #$page->bleedbox(  5/mm,   5/mm,  100/mm,  143/mm);
+#    $page->cropbox( 7.5 / mm, 7.5 / mm, 97.5 / mm, 140.5 / mm );
+    $page->cropbox($paper_size);
+    #$page->artbox  ( 10/mm,  10/mm,   95/mm,  138/mm);
+    
+    my $blue_box = $page->gfx;
+    $blue_box->fillcolor('darkblue');
+    $blue_box->rect( 1 / mm, 260 / mm, 214 / mm, 18 / mm );
+    $blue_box->fill;
+    
+    my $red_line = $page->gfx;
+    $red_line->strokecolor('red');
+    $red_line->move( 1 / mm, 260 / mm );
+    $red_line->line( 214 / mm, 260 / mm );
+    $red_line->stroke;
+    
+    my $headline_text = $page->text;
+    $headline_text->font( $font{'Helvetica'}{'Bold'}, 20 / pt );
+    $headline_text->fillcolor('white');
+    $headline_text->translate( 169 / mm, 270 / mm );
+    $headline_text->text("Jacuzzi Jam!");
+    
+    my $revision_text = $page->text;
+    $revision_text->font( $font{'Helvetica'}{'Bold'}, 8 / pt );
+    $revision_text->fillcolor('white');
+    $revision_text->translate( 169 / mm, 267 / mm );
+    $revision_text->text("$revision");
+    
+    my $instrument_text = $page->text;
+    $instrument_text->font( $font{'Helvetica'}{'Bold'}, 34 / pt );
+    $instrument_text->fillcolor('white');
+    $instrument_text->translate( 30 / mm, 264 / mm );
+    $instrument_text->text($instrument_name);
+    
+    # $instrument_name
+    
+    my $background = $page->gfx;
+    $background->strokecolor('lightgrey');
+    $background->circle( 40 / mm, 110 / mm, 110 / mm );
+    $background->circle( 50 / mm, 114 / mm, 105 / mm );
+    $background->circle( 42 / mm, 100 / mm, 120 / mm );
+    $background->stroke;
+    
+    return $page;
+}
+
+sub get_chords {
+    my $file = shift
+        or die "No file passed";
+
+    my $changes_raw = slurp_file($file);
+    my $changes = $changes_raw;
+    $changes =~ s/.*chords_used\s*=.*?\{(.*?)\}.*/$1/s;
+
+    my @chords;
+    my %chords;
+    
+    my @changes = split ' ', $changes;
+    
+    for (my $i = 0; $i <= $#changes; $i++) {
+        # next if ($changes[$i] =~ /^(?:\{|\}|\\repeat|volta|2|\\alternative)$/);
+    
+        my ($root, $duration, $type, $extension) = ($changes[$i] =~ m/
+            ([abcdefgs][sf]{0,1})       # Note root and sharp or flat
+            (\d*)                       # Note duration if specified
+            :{0,1}                      # Delimiter
+            (m|dim|aug|)                # Minor, Dim, Aug, etc
+            (.*)                        # $extensions
+        /x) or die "Can not decode chord '$changes[$i]' of file '$file', token $i of: $changes";
+        
+        $changes[$i] = {
+            root        => $root,
+            duration    => $duration,
+            type        => $type,
+            extension   => $extension,
+        };
+        
+        my $chord = $root;
+        if ($type or $extension) {
+            $chord = "$chord:$type$extension";
+        }
+        
+        unless ($chords{$chord}++) {
+            unless ($root eq 's') {
+                push @chords, $chord;
+            }
+        }
+    }
+    
+    return @chords;
+}
+
+sub slurp_file {
+    my $file    = shift;
+    my $dir     = dirname($file);
+    my $data    = '';
+
+    open my $FILE, $file
+        or confess "open($file): $!";
+
+    while(<$FILE>) {
+        s/%.*//; # remove comments
+
+        $data .= $_;
+
+        my ($include) = ($_ =~ m/\\include\s*"(.*?)"/);
+        if ($include) {
+            if (-e "$dir/$include") {
+                $data .= slurp_file("$dir/$include");
+            }
+            elsif (-e $include) {
+                $data .= slurp_file($include);
+            }
+            else {
+                confess "ERROR: Can not find file '$include' referenced in file '$file'";
+            }
+        }
+    }
+    return $data;
+}

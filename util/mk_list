@@ -1,0 +1,106 @@
+#!/usr/bin/perl -w
+
+use strict;
+
+use Carp;
+
+my $total_pages = 0;
+
+my $page_list='';
+
+my @files = sort { 
+    if ($a =~ /-toc\./) {
+        return -1;
+    }
+    elsif ($b =~ /-toc\./) {
+        return 1;
+    }
+    
+    my $A = $a;
+    my $B = $b;
+    for ($A, $B) {
+        s/^the_//i;
+        s/\(//i;
+        s/'//i;
+    }
+    return lc($A) cmp lc($B);
+} @ARGV;
+
+my $last_letter = '';
+
+for my $file (@files) {
+    next if ($file =~ /_chart/); # kluge 
+
+    my $is_toc = 0;
+    my $curr_letter = '';
+
+    if ($file =~ /-toc/) {
+        $is_toc = 1;
+    }
+    else {
+        $curr_letter = $file;
+        $curr_letter =~ s/^the_//i;
+        $curr_letter =~ s/\(//i;
+        $curr_letter =~ s/'//i;
+
+        $curr_letter = uc(substr($curr_letter, 0, 1));
+        if ($curr_letter =~ /\d/) {
+            $curr_letter = "1"
+        }
+    }
+
+    my $num_of_pages_file = "$file.size";
+    open my $NUM_OF_PAGES, $num_of_pages_file
+        or confess "open($num_of_pages_file): $!";
+
+    my $num_of_pages = <$NUM_OF_PAGES>;
+    chomp $num_of_pages;
+    close $NUM_OF_PAGES
+        or confess "close($num_of_pages_file): $!";
+
+    if ($curr_letter ne $last_letter) {
+        print STDERR "       Index Change: $last_letter -> $curr_letter\n";
+    }
+
+    unless ($is_toc) {
+        if ($curr_letter ne $last_letter and $page_list) {
+            if ($total_pages % 2) {
+                $page_list = "$page_list blank.pdf";
+                $total_pages++;
+                print STDERR "$last_letter -> $curr_letter blank.pdf\n";
+
+                open my $ADD_BLANK, ">$file.size.blank"
+                    or confess "open(>$file.size.blank): $!";
+                    print $ADD_BLANK "1";
+                close $ADD_BLANK
+                    or confess "close(>$file.size.blank): $!"; 
+            }
+        }
+
+        $last_letter = $curr_letter;
+    }
+
+    if ($num_of_pages > 1 and $page_list) {
+        if ($total_pages % 2 == 0) {
+            $page_list = "$page_list blank.pdf";
+            $total_pages++;
+            print STDERR "       blank.pdf\n";
+
+            my $add_blank = -e "$file.size.blank" ? 2 : 1;
+
+            open my $ADD_BLANK, ">$file.size.blank"
+                or confess "open(>$file.size.blank): $!";
+                print $ADD_BLANK "$add_blank";
+            close $ADD_BLANK
+                or confess "close(>$file.size.blank): $!"; 
+        }
+    }
+
+    print STDERR "$file $num_of_pages\n";
+
+    $page_list = "$page_list $file";
+    
+    $total_pages += $num_of_pages;
+}
+
+print "$page_list\n";
