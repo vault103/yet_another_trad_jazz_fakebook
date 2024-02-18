@@ -1,4 +1,0 @@
-[submodule "songs/yatjf_private_songs"]
-	path = songs/yatjf_private_songs
-	url = git@github.com:vault103/yatjf_private_songs.git
-	branch = main
