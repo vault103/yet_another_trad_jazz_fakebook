@@ -23,8 +23,8 @@ INCLUDES    := $(wildcard include/*.ly)
 #SHEETS      := $(filter-out $(INCLUDES) $(PART_INC), $(wildcard songs/*/*.ly))
 SONGS		:= $(shell find songs -name '*.ly')
 
-#PARTS 		:= $(notdir $(basename $(wildcard parts/*.ly)))
-PARTS = Concert
+PARTS 		:= $(notdir $(basename $(wildcard parts/*.ly)))
+#PARTS = Concert
 #PARTS = Rhythm_Guitar Bb Bb_Bass_Sax C_Bass Concert Eb
 
 $(foreach part,${PARTS},$(eval PDFS := ${PDFS} ${SONGS:%.ly=%-${part}.pdf}))
@@ -45,9 +45,25 @@ $(foreach part,${PARTS},$(eval PART_${part}_PDFS := ${SONGS:%.ly=%-${part}.pdf})
 $(foreach part,${PARTS},$(eval ${OUTPUT}-${part}.pdf: ${PART_${part}_PDFS} ${part}.list blank.pdf util/mk_book .revision_number.txt; ./util/mk_book --paper-size "$${PAPER_SIZE}" --output "$$@" --instrument ${part} $${SONGS}))
 $(foreach part,${PARTS},$(eval ${part}.list: ${SONGS} ${PART_${part}_PDFS} ${PART_${part}_PDFS:%.pdf=%.pdf.size} ${part}-toc.pdf.size;./util/mk_list $${@:%.list=%-toc.pdf} $${SONGS:%.ly=%-$${@:%.list=%}.pdf} > $$@))
 
+## For reasons unknown, only when running in a container lilypond can't find
+## the target file when the --output option is used because it does a
+## chdir() to that output directory and the path to the file is no longer
+## relative.  That's what is behind these extra --include paths for current
+## directory and the song directory, we instead "pass" the unpathed file to
+## process and let the include search find it.  Stupid, but it works in and
+## out of containers now.
 PART_TARGETS := $(patsubst %,\%-%.pdf, ${PARTS})
 ${PART_TARGETS}: %.ly include/standard_parts.ly include/standard_header.ly all_parts.ly
-	"${LILYPOND}" ${LILYPOND_OPTS} -dno-point-and-click --include="${INCLUDE_DIR}" --include="${PARTS_DIR}" --include="${FONTS_DIR}" -dpaper-size=\"${PAPER_SIZE}\" --output=$(basename $<) $<
+	"${LILYPOND}" \
+		${LILYPOND_OPTS} \
+		-dno-point-and-click \
+		--include="${INCLUDE_DIR}" \
+		--include="${PARTS_DIR}" \
+		--include="${FONTS_DIR}" \
+		--include=${CURDIR}/ \
+		--include=${CURDIR}/$(dir $<) \
+		-dpaper-size=\"${PAPER_SIZE}\" \
+		--output=$(basename $<) $(notdir $<)
 
 all_parts.ly:
 	> "$@"
@@ -58,8 +74,15 @@ all_parts.ly:
 	./util/mk_toc `echo '$@' | sed -e 's/-toc\..*//'` ${SONGS}
 
 %.pdf: %.ly
-	"${LILYPOND}" --version
-	"${LILYPOND}" ${LILYPOND_OPTS} -dno-point-and-click --include="${INCLUDE_DIR}" --include="${PARTS_DIR}" --include="${FONTS_DIR}" -dpaper-size=\"${PAPER_SIZE}\" --output=$(basename $<) $<
+	"${LILYPOND}" \
+		${LILYPOND_OPTS} \
+		-dno-point-and-click \
+		--include="${INCLUDE_DIR}" \
+		--include="${PARTS_DIR}" \
+		--include="${FONTS_DIR}" \
+		--include="$$PWD" \
+		-dpaper-size=\"${PAPER_SIZE}\" \
+		--output=$(basename $<) $<
 
 %.pdf.size: %.pdf
 	perl -MPDF::API2 -e 'print PDF::API2->open(shift)->pages' "$<" > "$@"
@@ -87,4 +110,4 @@ install_fonts: lilyjazzchord.otf lilyjazzchord.ttf
 	cp lilyjazzchord.ttf "/cygdrive/c/Windows/fonts/lilyjazzchord.ttf"
 
 build:
-	docker -c linux build --progress=plain .
+	docker build --progress=plain .
