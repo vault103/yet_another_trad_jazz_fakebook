@@ -361,7 +361,7 @@ sub new_page {
     $headline_text->font( $font{'Helvetica'}{'Bold'}, 20 / pt );
     $headline_text->fillcolor('white');
     $headline_text->translate( 162 / mm, 289 / mm );
-    $headline_text->text("Jacuzzi Jam!");
+    $headline_text->text("Yet Another Jazz Fakebook");
     
     my $revision_text = $page->text;
     $revision_text->font( $font{'Helvetica'}{'Bold'}, 8 / pt );
