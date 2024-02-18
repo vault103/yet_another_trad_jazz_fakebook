@@ -85,3 +85,6 @@ upload:
 install_fonts: lilyjazzchord.otf lilyjazzchord.ttf
 	cp lilyjazzchord.otf "/cygdrive/c/Program Files (x86)/LilyPond/usr/share/lilypond/current/fonts/otf/lilyjazzchord.otf"
 	cp lilyjazzchord.ttf "/cygdrive/c/Windows/fonts/lilyjazzchord.ttf"
+
+build:
+	docker -c linux build --progress=plain .
