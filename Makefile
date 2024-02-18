@@ -21,19 +21,15 @@ FONTS_DIR   := ${CURDIR}/fonts
 INCLUDES    := $(wildcard include/*.ly)
 #PART_INC    := $(wildcard parts/*.ly)
 #SHEETS      := $(filter-out $(INCLUDES) $(PART_INC), $(wildcard songs/*/*.ly))
-SONGS		:= $(wildcard songs/*/*.ly)
+SONGS		:= $(shell find songs -name '*.ly')
 
-PARTS 		:= $(notdir $(basename $(wildcard parts/*.ly)))
-#PARTS = Bass_Guitar Rhythm_Guitar
+#PARTS 		:= $(notdir $(basename $(wildcard parts/*.ly)))
+PARTS = Concert
 #PARTS = Rhythm_Guitar Bb Bb_Bass_Sax C_Bass Concert Eb
 
 $(foreach part,${PARTS},$(eval PDFS := ${PDFS} ${SONGS:%.ly=%-${part}.pdf}))
 
 PUBLISH_PATH := output/
-
-test:
-	echo ${PARTS:%=${OUTPUT}-%.pdf} | tr ' ' '\n'
-	echo ${SONGS}
 
 all: Makefile ${PARTS:%=${OUTPUT}-%.pdf}
 
