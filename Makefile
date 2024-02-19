@@ -2,7 +2,8 @@
 # Keep intermediate files
 .SECONDARY:
 
-LILYPOND_VERSION	=	2.22.1-2
+LILYPOND_VERSION	=	2.22.1
+#LILYPOND_VERSION	=	2.19.12
 
 OUTPUT  := yatjf_jam_book
 TITLE   := Yet Another Trad Jazz Fakebook
@@ -27,8 +28,8 @@ FONTS_DIR   := ${CURDIR}/fonts
 #SHEETS      := $(filter-out $(INCLUDES) $(PART_INC), $(wildcard songs/*/*.ly))
 SONGS		:= $(shell find songs -name '*.ly')
 
-#PARTS 		:= $(notdir $(basename $(wildcard parts/*.ly)))
-PARTS = Ukulele_GCEA
+PARTS 		:= $(notdir $(basename $(wildcard parts/*.ly)))
+#PARTS = Ukulele_GCEA
 #PARTS = Rhythm_Guitar Bb Bb_Bass_Sax C_Bass Concert Eb
 
 $(foreach part,${PARTS},$(eval PDFS := ${PDFS} ${SONGS:%.ly=%-${part}.pdf}))
@@ -67,7 +68,6 @@ ${PART_TARGETS}: %.ly include/standard_parts.ly include/standard_header.ly all_p
 		-dno-point-and-click \
 		--include="${INCLUDE_DIR}" \
 		--include="${PARTS_DIR}" \
-		--include="${FONTS_DIR}/lilyjazz/stylesheet" \
 		--include=${CURDIR}/ \
 		--include=${CURDIR}/$(dir $<) \
 		-dpaper-size=\"${PAPER_SIZE}\" \
@@ -123,7 +123,7 @@ build_container:
 	docker build --build-arg "LILYPOND_VERSION=${LILYPOND_VERSION}" --progress=plain . --tag ${IMAGE_TAG}
 
 docker_build:
-	docker run --user 1000 --user 1000 --rm -v $$PWD:/build -it -w /build ${IMAGE_TAG} make -j 16 all
+	docker run --user 1000 --user 1000 --rm -v $$PWD:/build -it -w /build ${IMAGE_TAG} make -j 32 all
 
 docker_clean:
 	docker run --user 1000 --user 1000 --rm -v $$PWD:/build -it -w /build ${IMAGE_TAG} make clean
