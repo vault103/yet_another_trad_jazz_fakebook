@@ -123,10 +123,10 @@ build_container:
 	docker build --build-arg "LILYPOND_VERSION=${LILYPOND_VERSION}" --progress=plain . --tag ${IMAGE_TAG}
 
 docker_build:
-	docker run --user 1000 --user 1000 --rm -v $$PWD:/build -w /build ${IMAGE_TAG} make -j 32 all
+	docker run --user $$(id -u):$$(id -g) --rm -v $$PWD:/build -w /build ${IMAGE_TAG} make -j 32 all
 
 docker_clean:
-	docker run --user 1000 --user 1000 --rm -v $$PWD:/build -it -w /build ${IMAGE_TAG} make clean
+	docker run --user $$(id -u):$$(id -g) --rm -v $$PWD:/build -it -w /build ${IMAGE_TAG} make clean
 
 web: 
 	cd output && python3 -m http.server 8080
