@@ -10,7 +10,7 @@ TITLE   := Yet Another Trad Jazz Fakebook
 PAPER_SIZE := letter
 # a4, etc
 
-IMAGE_TAG=${OUTPUT}-lilypond-${LILYPOND_VERSION}
+IMAGE_TAG	:= ${OUTPUT}-lilypond-${LILYPOND_VERSION}
 
 CHROME		:= "/cygdrive/c/Program Files/Google/Chrome/Application/chrome.exe"
 # cygstart

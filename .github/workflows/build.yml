@@ -19,3 +19,13 @@ jobs:
         submodules: recursive
     - name: Build the Docker image
       run: docker build --build-arg "LILYPOND_VERSION=${LILYPOND_VERSION}" . --file Dockerfile --tag yatjf_jam_book-lilypond-${LILYPOND_VERSION}
+
+    - name: Build the book
+      run: make -j 16 all IMAGE_TAG=yatjf_jam_book-lilypond-${LILYPOND_VERSION}
+      
+    - name: Upload book
+      uses: actions/upload-artifact@v4
+      with:
+        name: jam_book
+        path: "output/*"
+        if-no-files-found: error
