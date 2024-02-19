@@ -2,10 +2,14 @@
 # Keep intermediate files
 .SECONDARY:
 
+LILYPOND_VERSION	=	2.22.1-2
+
 OUTPUT  := yatjf_jam_book
 TITLE   := Yet Another Trad Jazz Fakebook
 PAPER_SIZE := letter
 # a4, etc
+
+IMAGE_TAG=${OUTPUT}-lilypond-${LILYPOND_VERSION}
 
 CHROME		:= "/cygdrive/c/Program Files/Google/Chrome/Application/chrome.exe"
 # cygstart
@@ -29,9 +33,13 @@ PARTS 		:= $(notdir $(basename $(wildcard parts/*.ly)))
 
 $(foreach part,${PARTS},$(eval PDFS := ${PDFS} ${SONGS:%.ly=%-${part}.pdf}))
 
-PUBLISH_PATH := output/
+PUBLISH_PATH := output
 
-all: Makefile ${PARTS:%=${OUTPUT}-%.pdf}
+output/.keep:
+	mkdir -p output/
+	touch output/.keep
+
+all: output/.keep Makefile ${PARTS:%=${PUBLISH_PATH}/${OUTPUT}-%.pdf}
 
 publish: all
 	mkdir -p ${PUBLISH_PATH}
@@ -42,7 +50,7 @@ publish: all
 	date +%m/%d/%Y > .revision_number.txt
 
 $(foreach part,${PARTS},$(eval PART_${part}_PDFS := ${SONGS:%.ly=%-${part}.pdf}))
-$(foreach part,${PARTS},$(eval ${OUTPUT}-${part}.pdf: ${PART_${part}_PDFS} ${part}.list blank.pdf util/mk_book .revision_number.txt; ./util/mk_book --paper-size "$${PAPER_SIZE}" --output "$$@" --instrument ${part} $${SONGS}))
+$(foreach part,${PARTS},$(eval ${PUBLISH_PATH}/${OUTPUT}-${part}.pdf: ${PART_${part}_PDFS} ${part}.list blank.pdf util/mk_book .revision_number.txt; ./util/mk_book --paper-size "$${PAPER_SIZE}" --output "$$@" --instrument ${part} $${SONGS}))
 $(foreach part,${PARTS},$(eval ${part}.list: ${SONGS} ${PART_${part}_PDFS} ${PART_${part}_PDFS:%.pdf=%.pdf.size} ${part}-toc.pdf.size;./util/mk_list $${@:%.list=%-toc.pdf} $${SONGS:%.ly=%-$${@:%.list=%}.pdf} > $$@))
 
 ## For reasons unknown, only when running in a container lilypond can't find
@@ -97,17 +105,21 @@ clean:
 	rm -f ${PDFS:%.pdf=%.ps}
 	rm -f ${PDFS:%.pdf=%.pdf.size}
 	rm -f ${PDFS:%.pdf=%.pdf.size.blank}
-	rm -f ${PARTS:%=${OUTPUT}-%.pdf}
-	rm -f ${PARTS:%=${OUTPUT}-%.ps}
+	rm -f ${PARTS:%=${PUBLISH_PATH}/${OUTPUT}-%.pdf}
+	rm -f ${PARTS:%=${PUBLISH_PATH}/${OUTPUT}-%.ps}
 	rm -f .revision_number.txt all_parts.ly blank.pdf
 	rm -f toc.pdf *-toc.pdf *-toc.pdf.size *-toc.html *-toc.ly *.list *.stackdump
 
 upload:
-	cp ${OUTPUT}-*.pdf '/cygdrive/r/Google Drive/Jacuzzi Jam/'
+	cp ${PUBLISH_PATH}/${OUTPUT}-*.pdf '/cygdrive/r/Google Drive/Jacuzzi Jam/'
 
 install_fonts: lilyjazzchord.otf lilyjazzchord.ttf
 	cp lilyjazzchord.otf "/cygdrive/c/Program Files (x86)/LilyPond/usr/share/lilypond/current/fonts/otf/lilyjazzchord.otf"
 	cp lilyjazzchord.ttf "/cygdrive/c/Windows/fonts/lilyjazzchord.ttf"
 
-build:
-	docker build --progress=plain .
+build_container:
+	docker build --build-arg "LILYPOND_VERSION=${LILYPOND_VERSION}" --progress=plain . --tag ${IMAGE_TAG}
+
+build: build_container
+#	docker run --rm -v $$PWD:/build -it -w /build ${IMAGE_TAG} find . -type f
+	docker run --rm -it -w /build ${IMAGE_TAG} find . -type f
