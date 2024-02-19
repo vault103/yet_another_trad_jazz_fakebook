@@ -1,0 +1,19 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  LILYPOND_VERSION: 2.22.1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the Docker image
+      run: docker build --build-arg "LILYPOND_VERSION=${LILYPOND_VERSION}" . --file Dockerfile --tag yatjf_jam_book-lilypond-${LILYPOND_VERSION}
