@@ -9,7 +9,7 @@
 flat_mark = \markup {
     \general-align #Y #-0.8
     \general-align #X #0.2
-    \override #'(font-name . "Jazz") { "b" } 
+    \override #'(font-name . "lilyjazz-chord") { \hspace #0.1 \fontsize #-5 \raise #0.3 { \flat } }
 }
 
 title       = ""
