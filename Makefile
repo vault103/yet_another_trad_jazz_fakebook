@@ -22,7 +22,7 @@ INCLUDE_DIR	:= ${CURDIR}/include
 PARTS_DIR   := ${CURDIR}/parts
 FONTS_DIR   := ${CURDIR}/fonts
 
-INCLUDES    := $(wildcard include/*.ly)
+#INCLUDES    := $(wildcard include/*.ly)
 #PART_INC    := $(wildcard parts/*.ly)
 #SHEETS      := $(filter-out $(INCLUDES) $(PART_INC), $(wildcard songs/*/*.ly))
 SONGS		:= $(shell find songs -name '*.ly')
@@ -109,6 +109,8 @@ clean:
 	rm -f ${PARTS:%=${PUBLISH_PATH}/${OUTPUT}-%.ps}
 	rm -f .revision_number.txt all_parts.ly blank.pdf
 	rm -f toc.pdf *-toc.pdf *-toc.pdf.size *-toc.html *-toc.ly *.list *.stackdump
+	rm -rf ${PUBLISH_PATH}/
+	rm -f songs/*/*/*-tmp-*
 
 upload:
 	cp ${PUBLISH_PATH}/${OUTPUT}-*.pdf '/cygdrive/r/Google Drive/Jacuzzi Jam/'
@@ -120,6 +122,11 @@ install_fonts: lilyjazzchord.otf lilyjazzchord.ttf
 build_container:
 	docker build --build-arg "LILYPOND_VERSION=${LILYPOND_VERSION}" --progress=plain . --tag ${IMAGE_TAG}
 
-build: build_container
-#	docker run --rm -v $$PWD:/build -it -w /build ${IMAGE_TAG} find . -type f
-	docker run --rm -it -w /build ${IMAGE_TAG} find . -type f
+docker_build:
+	docker run --user 1000 --user 1000 --rm -v $$PWD:/build -it -w /build ${IMAGE_TAG} make -j 16 all
+
+docker_clean:
+	docker run --user 1000 --user 1000 --rm -v $$PWD:/build -it -w /build ${IMAGE_TAG} make clean
+
+web: 
+	cd output && python3 -m http.server 8080
