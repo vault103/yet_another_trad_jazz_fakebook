@@ -1,19 +1,15 @@
 \version "2.16.0"
 \language "english"
+\include "jazzchords.ily"
+\include "lilyjazz.ily"
+\include "jazzextras.ily"
 
 \book {
     \bookOutputSuffix "Ukulele_GCEA"
+
     \paper {
         indent = 0\cm
         print-page-number = ##f
-        #(define fonts
-            (make-pango-font-tree
-                roman_font
-                sans_font
-                typewriter_font
-                (/ staff-height pt 20)
-            )
-        )
     }
 
     #(define my_title "")
@@ -56,9 +52,11 @@
             piece = " "
         }
         \layout {
-            \context { \ChordNames
-                \override ChordName.font-family = #'sans
-                \override ChordName.font-size   = #4
+            \context {
+                \chord_format
+%                \ChordNames
+%                \override ChordName.font-family = #'sans
+%                \override ChordName.font-size   = #4
             }
         }
      }
@@ -94,9 +92,11 @@
         #}
         #{ << >> #})
         \layout {
-            \context { \ChordNames
-                \override ChordName.font-family = #'sans
-                \override ChordName.font-size   = #4
+            \context {
+                \chord_format
+%                \ChordNames
+%                \override ChordName.font-family = #'sans
+%                \override ChordName.font-size   = #4
             }
         }
      }
