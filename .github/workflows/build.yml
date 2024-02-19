@@ -21,7 +21,7 @@ jobs:
       run: docker build --build-arg "LILYPOND_VERSION=${LILYPOND_VERSION}" . --file Dockerfile --tag yatjf_jam_book-lilypond-${LILYPOND_VERSION}
 
     - name: Build the book
-      run: make -j 16 docker_build IMAGE_TAG=yatjf_jam_book-lilypond-${LILYPOND_VERSION}
+      run: make docker_build IMAGE_TAG=yatjf_jam_book-lilypond-${LILYPOND_VERSION}
       
     - name: Upload book
       uses: actions/upload-artifact@v4
