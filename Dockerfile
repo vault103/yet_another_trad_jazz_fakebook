@@ -1,5 +1,5 @@
 ARG BASE=ubuntu:jammy
-ARG LILYPOND_VERSION=2.22.1-2
+ARG LILYPOND_VERSION=2.22.1
 ARG GUILE_VERSION=2.2
 
 ########################################################################################
@@ -53,7 +53,7 @@ RUN apt-get update && \
 ########################################################################################
 RUN apt-get --yes update && \
     apt-get --yes install \
-        "lilypond=${LILYPOND_VERSION}" \
+        "lilypond=${LILYPOND_VERSION}*" \
         make \
         libpdf-api2-perl \
         libpdf-api2-xs-perl
@@ -62,8 +62,9 @@ RUN apt-get --yes update && \
 COPY --from=build-fonts /usr/share/fonts /usr/share/fonts
 COPY ./fonts/*/supplementary-fonts/*.otf ./fonts/*/supplementary-files/*/*.otf /usr/share/fonts/opentype/
 COPY ./fonts/*/supplementary-fonts/*.ttf ./fonts/*/supplementary-files/*/*.ttf /usr/share/fonts/truetype/
-COPY ./fonts/*/stylesheet/* "/opt/share/lilypond/$VERSION/ly/"
-COPY ./fonts/*/otf ./fonts/*/woff "/opt/share/lilypond/$VERSION/fonts/otf/"
-COPY ./fonts/*/svg/* "/opt/share/lilypond/$VERSION/fonts/svg/"
-
-ENV PATH="/opt/bin:$PATH" LD_LIBRARY_PATH="/opt/lib:$LD_LIBRARY_PATH"
+#COPY ./fonts/*/stylesheet/* "/opt/share/lilypond/$VERSION/ly/"
+COPY ./fonts/*/stylesheet/* "/usr/share/lilypond/${LILYPOND_VERSION}/ly/"
+#COPY ./fonts/*/otf ./fonts/*/woff "/opt/share/lilypond/$VERSION/fonts/otf/"
+COPY ./fonts/*/otf ./fonts/*/woff "/usr/share/lilypond/${LILYPOND_VERSION}/fonts/otf/"
+#COPY ./fonts/*/svg/* "/opt/share/lilypond/$VERSION/fonts/svg/"
+COPY ./fonts/*/svg/* "/usr/share/lilypond/${LILYPOND_VERSION}/fonts/svg/"
