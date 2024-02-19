@@ -1,10 +1,10 @@
 \version "2.16.0"
 \language "english"
 
-roman_font      = "JazzText"
+% roman_font      = "JazzText"
 % sans_font       = "Nimbus Sans"
-sans_font       = "JazzCord"
-typewriter_font = "Luxi Mono"
+% sans_font       = "JazzCord"
+% typewriter_font = "Luxi Mono"
 
 flat_mark = \markup {
     \general-align #Y #-0.8

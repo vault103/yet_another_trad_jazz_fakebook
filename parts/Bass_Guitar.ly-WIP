@@ -3,21 +3,22 @@
 
 \book {
     \bookOutputSuffix "Bass_Guitar"
-    \paper {
+
 %        annotate-spacing = ##t
-        print-page-number = ##f
-        indent = 0\cm
-        #(define bottom-margin (* 0 cm))
 %        #(define top-margin (* 0 cm))
+    \paper {
+        indent = 0\cm
+        print-page-number = ##f
+        #(define bottom-margin (* 0 cm))
 
         #(define fonts
-            (make-pango-font-tree
-                roman_font
-                sans_font
-                typewriter_font
-                (/ staff-height pt 20)
+            (set-global-fonts
+                #:music "lilyjazz"
+                #:brace "lilyjazz"
+                #:roman "lilyjazz-text"
+                #:factor (/ staff-height pt 20)
             )
-        )                              
+        )
     }
 
     #(define my_title "")

@@ -7,13 +7,13 @@
         indent = 0\cm
         print-page-number = ##f
         #(define fonts
-            (make-pango-font-tree
-                roman_font
-                sans_font
-                typewriter_font
-                (/ staff-height pt 20)
+            (set-global-fonts
+                #:music "lilyjazz"
+                #:brace "lilyjazz"
+                #:roman "lilyjazz-text"
+                #:factor (/ staff-height pt 20)
             )
-        )                              
+        )
     }
 
     % WTF is the difference between $() and #() ?

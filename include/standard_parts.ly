@@ -209,7 +209,7 @@ chord_format = {
     \set chordNameExceptions                    = #chJazz
     \set chordRootNamer                         = #chordNamer
     \override ChordNames.ChordName.font-size    = #2
-    \override ChordNames.ChordName.font-name    = #"lilyjazzchord"
+    \override ChordNames.ChordName.font-name    = #"lilyjazz-chord"
     % \set chordChanges                         = ##t
 }
 

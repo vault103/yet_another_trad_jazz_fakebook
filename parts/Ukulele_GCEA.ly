@@ -1,8 +1,5 @@
 \version "2.16.0"
 \language "english"
-\include "jazzchords.ily"
-\include "lilyjazz.ily"
-\include "jazzextras.ily"
 
 \book {
     \bookOutputSuffix "Ukulele_GCEA"
@@ -10,7 +7,19 @@
     \paper {
         indent = 0\cm
         print-page-number = ##f
+        #(define fonts
+            (set-global-fonts
+                #:music "lilyjazz"
+                #:brace "lilyjazz"
+                #:roman "lilyjazz-text"
+                #:factor (/ staff-height pt 20)
+            )
+        )
     }
+
+%{
+                #:sans "lilyjazz-chord"
+%}
 
     #(define my_title "")
     #(define my_subtitle "")

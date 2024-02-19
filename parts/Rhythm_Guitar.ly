@@ -10,11 +10,11 @@
         #(define bottom-margin (* 0 cm))
 %        #(define top-margin (* 0 cm))
         #(define fonts
-            (make-pango-font-tree
-                roman_font
-                sans_font
-                typewriter_font
-                (/ staff-height pt 20)
+            (set-global-fonts
+                #:music "lilyjazz"
+                #:brace "lilyjazz"
+                #:roman "lilyjazz-text"
+                #:factor (/ staff-height pt 20)
             )
         )
     }
