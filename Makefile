@@ -115,11 +115,14 @@ clean:
 upload:
 	cp ${PUBLISH_PATH}/${OUTPUT}-*.pdf '/cygdrive/r/Google Drive/Jacuzzi Jam/'
 
-install_fonts: lilyjazzchord.otf lilyjazzchord.ttf
-	cp lilyjazzchord.otf "/cygdrive/c/Program Files (x86)/LilyPond/usr/share/lilypond/current/fonts/otf/lilyjazzchord.otf"
-	cp lilyjazzchord.ttf "/cygdrive/c/Windows/fonts/lilyjazzchord.ttf"
+#install_fonts: lilyjazzchord.otf lilyjazzchord.ttf
+#	cp lilyjazzchord.otf "/cygdrive/c/Program Files (x86)/LilyPond/usr/share/lilypond/current/fonts/otf/lilyjazzchord.otf"
+#	cp lilyjazzchord.ttf "/cygdrive/c/Windows/fonts/lilyjazzchord.ttf"
 
-build_container:
+fonts/lilyjazz/README.md:
+	git submodule update --init
+
+build_container: fonts/lilyjazz/README.md
 	docker build --build-arg "LILYPOND_VERSION=${LILYPOND_VERSION}" --progress=plain . --tag ${IMAGE_TAG}
 
 docker_build:
