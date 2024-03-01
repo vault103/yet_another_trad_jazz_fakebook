@@ -22,7 +22,19 @@ jobs:
 
     - name: Build the book
       run: make docker_build IMAGE_TAG=yatjf_jam_book-lilypond-${LILYPOND_VERSION}
-      
+
+    - name: Make book index.html
+      working-directory: output/
+      run: |
+        (
+            echo "<html><head><title>yet another trad jazz fakebook</title></head><body><br/>"
+            echo "<h1><a href=\"https://github.com/vault103/yet_another_trad_jazz_fakebook\">yet another trad jazz fakebook</a></h1><br/><br/>"
+            for file in *.pdf; do
+                part_name=$(echo "$file" | perl -pe 's/yatjf_jam_book-//; s/\.pdf//; s/_/ /g')
+                echo "<a href=\"$file\">$part_name"</a><br/>"
+            done
+            echo "</body></html>"
+        ) > index.html
     - name: Upload book
       uses: actions/upload-artifact@v4
       with:
