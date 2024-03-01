@@ -31,7 +31,7 @@ jobs:
             echo "<h1><a href=\"https://github.com/vault103/yet_another_trad_jazz_fakebook\">yet another trad jazz fakebook</a></h1><br/><br/>"
             for file in *.pdf; do
                 part_name=$(echo "$file" | perl -pe 's/yatjf_jam_book-//; s/\.pdf//; s/_/ /g')
-                echo "<a href=\"$file\">$part_name"</a><br/>"
+                echo "<a href=\"$file\">$part_name</a><br/>"
             done
             echo "</body></html>"
         ) > index.html
