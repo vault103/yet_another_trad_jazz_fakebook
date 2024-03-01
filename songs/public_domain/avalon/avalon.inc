@@ -69,7 +69,6 @@ jonathan_changes = \chordmode {
 }
 
 changes = {
-%    \transpose c f \changes_a
     \changes_a
     \jonathan_changes
 }
