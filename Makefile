@@ -133,3 +133,7 @@ docker_clean:
 
 web: 
 	cd output && python3 -m http.server 8080
+
+grip:
+	@echo Use: http://127.0.0.2:8080/
+	grip `cat .grip_auth 2>/dev/null` --norefresh . 0.0.0.0:8080
