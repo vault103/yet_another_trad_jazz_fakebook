@@ -5,3 +5,4 @@ all_parts.ly
 *.list
 songs/yatjf_private_songs
 .revision_number.txt
+.grip_auth
