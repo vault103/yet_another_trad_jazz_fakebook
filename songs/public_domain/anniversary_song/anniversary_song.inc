@@ -1,7 +1,7 @@
 \include "standard_header.ly"
 
 title       = "Anniversary Song 4/4 - C"
-% subtitle    = "Music by Iosif Ivanovici - 1880"
+subtitle    = "Music by Iosif Ivanovici - 1880"
 subsubtitle = ""
 % source_url  = \markup { \with-url #"http://creolejazzband.com/Fake%20Books" "source" }
 % source_url  = \markup { \with-url #"http://cjam.lassecollin.se/songs2/bringmesunshine110408.html" "source" }
