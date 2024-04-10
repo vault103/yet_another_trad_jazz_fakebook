@@ -1,0 +1,5 @@
+\version "2.19.82"
+\version "2.16.0"
+\include "here_comes_the_hot_tamale_man.inc"
+title = "Here Comes The Hot Tamale Man - Eb"
+\include "standard_parts.ly"
