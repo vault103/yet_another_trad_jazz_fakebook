@@ -12,6 +12,15 @@ flat_mark = \markup {
     \override #'(font-name . "lilyjazz-chord") { \hspace #0.1 \fontsize #-5 \raise #0.3 { \flat } }
 }
 
+customSpan = {
+%    \override TextSpanner.bound-details.left.text = \markup{ \musicglyph #"pedal.*" }
+    \override TextSpanner.bound-details.left.stencil-align-dir-y = #0
+    \override TextSpanner.dash-fraction = 0.5
+    \override TextSpanner.dash-period = 1
+    % \override TextSpanner.thickness = 2    
+}
+
+
 title       = ""
 subtitle    = ""
 subsubtitle = ""
