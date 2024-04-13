@@ -2,7 +2,7 @@
 \language "english"
 
 \book {
-    \bookOutputSuffix "Concert"
+    \bookOutputSuffix "C_Treble"
     \paper {
         indent = 0\cm
         print-page-number = ##f
@@ -28,7 +28,7 @@
         subsubtitle = \subsubtitle
         source      = ""
         tagline     = ##f
-        piece       = "Concert"
+        piece       = "C Treble"
         composer    = \source_url
         arranger    = \listen_url
     }
