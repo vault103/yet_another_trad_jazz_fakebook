@@ -35,6 +35,33 @@
 
 
     \score {
+        \transpose c c,, {
+            <<
+            \new ChordNames  {
+                \chord_format
+                \chord_names
+            }
+            \new Staff \with {
+                 \remove "Time_signature_engraver"
+                 \remove "Clef_engraver"
+            } {
+                \clef bass
+                \chord_names
+            }
+            >>
+        }
+        \header {
+            piece = ""
+        }
+        \layout {
+            #(layout-set-staff-size 15)
+            \context { \ChordNames
+                \override ChordName.font-family = #'sans
+                \override ChordName.font-size   = #4
+            }
+        }
+    }
+    \score {
         \transpose c c, {
             $(if(not pdf_c_bassI) #{
                 <<
