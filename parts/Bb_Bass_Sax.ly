@@ -30,7 +30,7 @@
         subsubtitle = \subsubtitle
         source      = ""
         tagline     = ##f
-        piece       = "Bb Bass Saxophone"
+        piece       = \markup { \concat { "B" \flat_mark } " Bass Saxophone" }
         composer    = \source_url
         arranger    = \listen_url
     }
@@ -51,13 +51,12 @@
             >>
         }
         \header {
-            piece = " "
+            piece = ""
         }
         \layout {
-            % \once \override Staff.Clef.transparent            = ##t
-            % \once \override Staff.TimeSignature.transparent   = ##t
             #(layout-set-staff-size 15)
-            \context { \ChordNames
+            \context {
+                \ChordNames
                 \override ChordName.font-family = #'sans
                 \override ChordName.font-size   = #4
             }

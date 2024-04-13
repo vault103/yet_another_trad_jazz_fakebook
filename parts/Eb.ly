@@ -28,7 +28,7 @@
         subsubtitle = \subsubtitle
         source      = ""
         tagline     = ##f
-        piece       = "Eb Instruments"
+        piece       = \markup { \concat { "E" \flat_mark } " Instruments" }
         composer    = \source_url
         arranger    = \listen_url
     }
