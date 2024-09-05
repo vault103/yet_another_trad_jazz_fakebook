@@ -1,4 +1,16 @@
 
+AWS_PROFILES	= rhps-main
+
+login:
+	for profile in ${AWS_PROFILES}; do \
+		if ! aws --profile "$$profile" sts get-caller-identity; then \
+			aws  --profile "$$profile" sso login; \
+		fi; \
+	done
+
+# Keep intermediate files
+#.SECONDARY:
+
 LILYPOND_VERSION	=	2.22.1
 #LILYPOND_VERSION	=	2.19.12
 
@@ -134,3 +146,4 @@ web:
 grip:
 	@echo Use: http://127.0.0.2:8080/
 	grip `cat .grip_auth 2>/dev/null` --norefresh . 0.0.0.0:8080
+
