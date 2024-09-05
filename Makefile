@@ -1,7 +1,4 @@
 
-# Keep intermediate files
-.SECONDARY:
-
 LILYPOND_VERSION	=	2.22.1
 #LILYPOND_VERSION	=	2.19.12
 
