@@ -6,18 +6,25 @@ ARG GUILE_VERSION=2.2
 # Install Microsoft fonts in a new ubuntu environment
 ########################################################################################
 FROM $BASE AS build-fonts
+
 WORKDIR /build/msfonts
-RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections && \
-    apt-get --yes update && \
-    apt-get --yes install \
-        wget \
-        fonts-dejavu-extra \
-        ttf-mscorefonts-installer && \
-    rm -rf /var/lib/apt/lists/* && \
-    # This fix is taken from here:
-    # https://askubuntu.com/questions/1163560/change-mirror-for-ttf-mscorefonts-installer
-    awk '/Url/ {sub("downloads[.]sourceforge[.]net/corefonts","cfhcable.dl.sourceforge.net/project/corefonts/the%20fonts/final",$2); system("wget "$2)}' /usr/share/package-data-downloads/ttf-mscorefonts-installer && \
-    /usr/lib/msttcorefonts/update-ms-fonts $(pwd)/*.exe
+
+RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+RUN apt-get --yes update
+RUN apt-get --yes install perl
+RUN apt-get --yes install libterm-readline-gnu-perl
+RUN apt-get --yes install wget
+RUN apt-get --yes install fonts-dejavu-extra
+RUN apt-get --yes install ttf-mscorefonts-installer
+RUN apt-get --yes install tree
+
+# This fix is taken from here:
+# https://askubuntu.com/questions/1163560/change-mirror-for-ttf-mscorefonts-installer
+# RUN awk '/Url/ {sub("downloads[.]sourceforge[.]net/corefonts","cfhcable.dl.sourceforge.net/project/corefonts/the%20fonts/final",$2); system("wget "$2)}' /usr/share/package-data-downloads/ttf-mscorefonts-installer
+# RUN awk '/Url/ {sub("downloads[.]sourceforge[.]net/corefonts","cfhcable.dl.sourceforge.net/project/corefonts/the%20fonts/final",$2); system("echo "$2)}' /usr/share/package-data-downloads/ttf-mscorefonts-installer
+COPY ./fonts/corefonts/*.exe .
+RUN /usr/lib/msttcorefonts/update-ms-fonts $(pwd)/*.exe
+RUN touch /var/lib/update-notifier/package-data-downloads/ttf-mscorefonts-installer
 
 ########################################################################################
 # Install runtime dependencies and copy the build artifacts from the previous stage.

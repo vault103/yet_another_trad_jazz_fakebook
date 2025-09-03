@@ -36,6 +36,8 @@ FONTS_DIR   := ${CURDIR}/fonts
 #PART_INC    := $(wildcard parts/*.ly)
 #SHEETS      := $(filter-out $(INCLUDES) $(PART_INC), $(wildcard songs/*/*.ly))
 SONGS		:= $(shell find songs -name '*.ly')
+#SONGS		:= $(shell find songs -name 'gypsy_jazz_basics*.ly')
+#SONGS		:= songs/public_domain/dinah/dinah-g.ly
 
 PARTS 		:= $(notdir $(basename $(wildcard parts/*.ly)))
 #PARTS = Ukulele_GCEA
@@ -109,7 +111,7 @@ read:
 	# ${CHROME} "$$FULL_PATH"
 	${CHROME} ${OUTPUT_URLS}
 
-clean:
+do_clean:
 	rm -f ${PDFS}
 	rm -f ${PDFS:%.pdf=%.ps}
 	rm -f ${PDFS:%.pdf=%.pdf.size}
@@ -118,7 +120,7 @@ clean:
 	rm -f ${PARTS:%=${PUBLISH_PATH}/${OUTPUT}-%.ps}
 	rm -f .revision_number.txt all_parts.ly blank.pdf
 	rm -f toc.pdf *-toc.pdf *-toc.pdf.size *-toc.html *-toc.ly *.list *.stackdump
-	rm -rf ${PUBLISH_PATH}/
+	rm -rf ${PUBLISH_PATH}/*
 	rm -f songs/*/*/*-tmp-*
 
 upload:
@@ -138,10 +140,14 @@ docker_build:
 	docker run --user $$(id -u):$$(id -g) --rm -v $$PWD:/build -w /build ${IMAGE_TAG} make -j 32 all
 
 docker_clean:
-	docker run --user $$(id -u):$$(id -g) --rm -v $$PWD:/build -it -w /build ${IMAGE_TAG} make clean
+	docker run --user $$(id -u):$$(id -g) --rm -v $$PWD:/build -it -w /build ${IMAGE_TAG} make do_clean
+
+build: docker_build
+
+clean: docker_clean do_clean
 
 web: 
-	cd output && python3 -m http.server 8080
+	cd output && python3 -m http.server 8888
 
 grip:
 	@echo Use: http://127.0.0.2:8080/

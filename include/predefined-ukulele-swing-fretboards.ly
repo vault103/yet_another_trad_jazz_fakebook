@@ -276,6 +276,12 @@
 \storePredefinedDiagram #default-fret-table \chordmode {d:7}
                         #ukulele-tuning
                         #(offset-fret 1 (chord-shape 'des:7 ukulele-tuning))
+
+% D9
+\storePredefinedDiagram #default-fret-table \chordmode {d:9}
+                        #ukulele-tuning
+                        #(offset-fret 2 (chord-shape 'aes:m6 ukulele-tuning))
+
 % Ddim
 \storePredefinedDiagram #default-fret-table \chordmode {d:dim}
                         #ukulele-tuning
@@ -432,6 +438,12 @@
 \storePredefinedDiagram #default-fret-table \chordmode {e:m7}
                         #ukulele-tuning
                         #(offset-fret 2 (chord-shape 'd:m7 ukulele-tuning))
+
+% E'm7
+\storePredefinedDiagram #default-fret-table \chordmode {e':m7}
+                        #ukulele-tuning
+                        #(offset-fret 2 (chord-shape 'f:m6 ukulele-tuning))
+
 % Em6
 \storePredefinedDiagram #default-fret-table \chordmode {e'':m6}
                         #ukulele-tuning
@@ -850,16 +862,20 @@
 \storePredefinedDiagram #default-fret-table \chordmode {a'':m7}
                         #ukulele-tuning
                         #(offset-fret 4 (chord-shape 'f:m7 ukulele-tuning))
+\storePredefinedDiagram #default-fret-table \chordmode {a':m7}
+                        #ukulele-tuning
+                        #(offset-fret 1 (chord-shape 'b:m6 ukulele-tuning))
 \storePredefinedDiagram #default-fret-table \chordmode {a:m7}
                         #ukulele-tuning
                         #(offset-fret 1 (chord-shape 'b:6 ukulele-tuning))
 % Am6
-\storePredefinedDiagram #default-fret-table \chordmode {a'':m6}
-                        #ukulele-tuning
-                        #(offset-fret 4 (chord-shape 'f:m6 ukulele-tuning))
 \storePredefinedDiagram #default-fret-table \chordmode {a:m6}
                         #ukulele-tuning
                         #(offset-fret 1 (chord-shape 'aes:m6 ukulele-tuning))
+\storePredefinedDiagram #default-fret-table \chordmode {a'':m6}
+                        #ukulele-tuning
+                        #(offset-fret 4 (chord-shape 'f:m6 ukulele-tuning))
+
 % A7
 \storePredefinedDiagram #default-fret-table \chordmode {a:7}
                         #ukulele-tuning

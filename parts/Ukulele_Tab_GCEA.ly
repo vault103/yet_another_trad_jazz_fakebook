@@ -2,7 +2,7 @@
 \language "english"
 
 \book {
-    \bookOutputSuffix "Ukulele_GCEA"
+    \bookOutputSuffix "Ukulele_Tab_GCEA"
 
     \paper {
         indent = 0\cm
@@ -92,6 +92,10 @@
 
                 \page_format
                 \new Staff {
+                    \melody
+                }
+                \new TabStaff {
+                    \set Staff.stringTunings = \stringTuning <g c' e' a'>
                     \melody
                 }
                 \addlyrics { \verseI }
